@@ -8,16 +8,17 @@
     "access": "public"
   },
   "repository": {
-    "url": "https://github.com/czottmann/pi-nebius-token-factory"
+    "url": "git+https://github.com/czottmann/pi-nebius-token-factory.git"
   },
   "keywords": [
     "pi",
     "pi-extension",
     "pi-package",
+    "pi-plugin",
     "nebius",
+    "nebius-token-factory",
     "token-factory",
     "llm",
-    "router",
     "coding-agent"
   ],
   "scripts": {
