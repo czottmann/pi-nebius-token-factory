@@ -1,6 +1,6 @@
 {
   "name": "@czottmann/pi-nebius-token-factory",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Nebius Token Factory API provider extension for pi coding agent.",
   "type": "module",
   "license": "MIT",
