@@ -1,0 +1,46 @@
+{
+  "name": "@czottmann/pi-nebius-token-factory",
+  "version": "1.0.0",
+  "description": "Nebius Token Factory API provider extension for pi coding agent.",
+  "type": "module",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "url": "https://github.com/czottmann/pi-nebius-token-factory"
+  },
+  "keywords": [
+    "pi",
+    "pi-extension",
+    "pi-package",
+    "nebius",
+    "token-factory",
+    "llm",
+    "router",
+    "coding-agent"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit",
+    "build": "tsc --noEmit"
+  },
+  "files": [
+    "extensions",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions/nebius-token-factory.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.79.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.9.3"
+  }
+}
