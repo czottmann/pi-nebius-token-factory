@@ -56,7 +56,7 @@ In interactive mode, `/nebius-token-factory-models` lists the Nebius Token Facto
 
 The extension registers the `nebius-token-factory` provider on startup, so it appears under API keys in `/login` even before you have set a key. When `NEBIUS_TOKEN_FACTORY_API_KEY` is set, the catalog is fetched at load; otherwise the provider starts without models until you save a key in `/login`, after which pi refreshes the provider and the models appear — no restart needed.
 
-The catalog fetch calls `GET https://api.tokenfactory.nebius.com/v1/models?verbose=true` and keeps models that support tool calling. Note that non-interactive runs (`pi --list-models`) do not refresh provider catalogs, so in those modes models are only available when `NEBIUS_TOKEN_FACTORY_API_KEY` is set.
+The catalog fetch calls `GET https://api.tokenfactory.nebius.com/v1/models?verbose=true` and keeps models that support tool calling. Fetches have a per-attempt timeout and retry transient failures (network errors, HTTP 429/5xx) with backoff. The last successfully loaded catalog is persisted and restored at startup, so models stay selectable even when the API is unreachable — the cached catalog appears in the model picker immediately, while a refresh is still running in the background. Note that non-interactive runs (`pi --list-models`) do not refresh provider catalogs, so in those modes models come from the `NEBIUS_TOKEN_FACTORY_API_KEY` pre-fetch or the persisted catalog.
 
 Model metadata is derived from the Nebius Token Factory catalog:
 
