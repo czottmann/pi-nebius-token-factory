@@ -35,6 +35,10 @@ type RegisteredModel = {
 	compat: { supportsDeveloperRole: boolean; maxTokensField: "max_tokens" };
 };
 
+// Kept in sync by refreshModels; the slash command reads from here so it
+// always reflects the currently registered catalog.
+let currentModels: RegisteredModel[] = [];
+
 function hasFeature(model: NebiusTokenFactoryModel, feature: string): boolean {
 	return (model.supported_features ?? []).includes(feature);
 }
@@ -77,16 +81,11 @@ function toRegisteredModel(model: NebiusTokenFactoryModel): RegisteredModel | un
 	};
 }
 
-async function fetchModels(): Promise<RegisteredModel[] | undefined> {
-	const apiKey = process.env[API_KEY_ENV_VAR];
-	if (!apiKey) {
-		console.warn(`[${PROVIDER_NAME}] ${API_KEY_ENV_VAR} is not set; no provider registered`);
-		return undefined;
-	}
-
+async function fetchModels(apiKey: string, signal: AbortSignal): Promise<RegisteredModel[] | undefined> {
 	try {
 		const res = await fetch(`${BASE_URL}/models?verbose=true`, {
 			headers: { Authorization: `Bearer ${apiKey}` },
+			signal,
 		});
 		if (!res.ok) {
 			console.warn(`[${PROVIDER_NAME}] API returned ${res.status}: ${res.statusText}`);
@@ -104,32 +103,53 @@ async function fetchModels(): Promise<RegisteredModel[] | undefined> {
 			return registeredModel ? [registeredModel] : [];
 		});
 	} catch (error) {
-		console.warn(`[${PROVIDER_NAME}] Failed to fetch models:`, error);
+		if (!signal.aborted) {
+			console.warn(`[${PROVIDER_NAME}] Failed to fetch models:`, error);
+		}
 		return undefined;
 	}
 }
 
 export default async function (pi: ExtensionAPI) {
-	const models = await fetchModels();
-	if (!models) return;
+	// Pi does not invoke refreshModels in non-interactive modes (e.g.
+	// `pi --list-models`), so pre-fetch with the environment key when it is
+	// set. Without a key the provider still registers (with no models) so
+	// it shows up in /login; refreshModels then loads the catalog once a
+	// key is saved.
+	const initialKey = process.env[API_KEY_ENV_VAR];
+	const initialModels = initialKey ? await fetchModels(initialKey, new AbortController().signal) : undefined;
+	if (initialModels) currentModels = initialModels;
 
 	pi.registerProvider(PROVIDER_NAME, {
 		name: PROVIDER_DISPLAY_NAME,
 		baseUrl: BASE_URL,
 		apiKey: API_KEY_ENV_REF,
 		api: "openai-completions",
-		models,
+		models: initialModels ?? [],
+		refreshModels: async (context) => {
+			// Pi calls refreshModels at startup and after /login in
+			// interactive sessions. Without a usable key we keep the
+			// current list; the provider stays visible in /login either way.
+			if (!context.allowNetwork) return currentModels;
+			const credential = context.credential;
+			if (credential?.type !== "api_key" || !credential.key) return currentModels;
+
+			const refreshed = await fetchModels(credential.key, context.signal);
+			if (!refreshed) return currentModels;
+			currentModels = refreshed;
+			return refreshed;
+		},
 	});
 
 	pi.registerCommand("nebius-token-factory-models", {
 		description: "List available Nebius Token Factory models",
 		handler: async (_args, ctx) => {
-			if (models.length === 0) {
+			if (currentModels.length === 0) {
 				ctx.ui.notify("No Nebius Token Factory models available", "warning");
 				return;
 			}
 
-			const items = [...models]
+			const items = [...currentModels]
 				.sort((a, b) => a.id.localeCompare(b.id))
 				.map((model) => {
 					const tags = [];
@@ -138,7 +158,7 @@ export default async function (pi: ExtensionAPI) {
 					return tags.length > 0 ? `${model.id} (${tags.join(", ")})` : model.id;
 				});
 
-			await ctx.ui.select(`${PROVIDER_DISPLAY_NAME} — ${models.length} models`, items);
+			await ctx.ui.select(`${PROVIDER_DISPLAY_NAME} — ${currentModels.length} models`, items);
 		},
 	});
 }

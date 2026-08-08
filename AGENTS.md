@@ -2,7 +2,7 @@
 
 ## Project overview
 
-This repository is `@czottmann/pi-nebius-token-factory`, a Pi extension package that registers a `nebius-token-factory` provider for the [Nebius Token Factory](https://tokenfactory.nebius.com/) API (`https://api.tokenfactory.nebius.com/v1`).
+This repository is `@czottmann/pi-nebius-token-factory`, a Pi extension package that registers the `nebius-token-factory` provider for the [Nebius Token Factory](https://tokenfactory.nebius.com/) API (`https://api.tokenfactory.nebius.com/v1`).
 
 On startup the extension fetches the Nebius Token Factory model catalog, keeps the tool-capable models, and registers them with Pi using the `openai-completions` API adapter.
 
@@ -16,9 +16,7 @@ On startup the extension fetches the Nebius Token Factory model catalog, keeps t
 
 ## How the extension works
 
-On load it fetches `GET https://api.tokenfactory.nebius.com/v1/models?verbose=true`, keeps models that support tool calling, and registers them under the `nebius-token-factory` provider via `pi.registerProvider()` with the `openai-completions` adapter. Model metadata is derived from the catalog: `context_length` becomes the context window, `pricing.prompt`/`pricing.completion` (per-token) become per-million cost metadata, a modality with image input adds image support, and the `reasoning` feature marks a model as reasoning-capable.
-
-`NEBIUS_TOKEN_FACTORY_API_KEY` is sent with the catalog request. The catalog requires authentication, so models only register when the key is present (saved via `/login` or set as environment variable). Inference uses the same key. The extension also registers `/nebius-token-factory-models` to list the registered models.
+On load it registers the `nebius-token-factory` provider via `pi.registerProvider()` with the `openai-completions` adapter. When `NEBIUS_TOKEN_FACTORY_API_KEY` is set, it pre-fetches `GET https://api.tokenfactory.nebius.com/v1/models?verbose=true` and registers those models immediately, because pi does not refresh extension providers in non-interactive modes such as `pi --list-models`. Without a key it registers with an empty model list so the provider still appears in `/login`; a `refreshModels` callback then fetches the catalog using the effective credential (`context.credential`: a key saved via `/login` or the environment variable), which pi invokes after credential changes in interactive sessions. Model metadata is derived from the catalog: `context_length` becomes the context window, `pricing.prompt`/`pricing.completion` (per-token) become per-million cost metadata, a modality with image input adds image support, and the `reasoning` feature marks a model as reasoning-capable. The extension also registers `/nebius-token-factory-models` to list the registered models.
 
 ## Development commands
 

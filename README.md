@@ -54,7 +54,9 @@ In interactive mode, `/nebius-token-factory-models` lists the Nebius Token Facto
 
 ## How it works
 
-On startup, the extension fetches `GET https://api.tokenfactory.nebius.com/v1/models?verbose=true` and keeps models that support tool calling. It registers them with `pi.registerProvider()` using pi's `openai-completions` API adapter.
+The extension registers the `nebius-token-factory` provider on startup, so it appears under API keys in `/login` even before you have set a key. When `NEBIUS_TOKEN_FACTORY_API_KEY` is set, the catalog is fetched at load; otherwise the provider starts without models until you save a key in `/login`, after which pi refreshes the provider and the models appear — no restart needed.
+
+The catalog fetch calls `GET https://api.tokenfactory.nebius.com/v1/models?verbose=true` and keeps models that support tool calling. Note that non-interactive runs (`pi --list-models`) do not refresh provider catalogs, so in those modes models are only available when `NEBIUS_TOKEN_FACTORY_API_KEY` is set.
 
 Model metadata is derived from the Nebius Token Factory catalog:
 
@@ -63,7 +65,7 @@ Model metadata is derived from the Nebius Token Factory catalog:
 - A modality with image input (e.g. `text+image->text`) adds image input support.
 - The `reasoning` feature marks a model as reasoning-capable.
 
-The catalog requires authentication, so `NEBIUS_TOKEN_FACTORY_API_KEY` (or a saved key from `/login`) must be present for models to load. The key is sent when fetching the catalog and is also used for inference.
+The catalog requires authentication: `NEBIUS_TOKEN_FACTORY_API_KEY` or a saved key from `/login` must be present for models to load. The same key is used for inference.
 
 ## Development
 
@@ -85,5 +87,6 @@ Carlo Zottmann, <carlo@zottmann.dev>
 
 - Website: https://actions.work
 - GitHub: https://github.com/czottmann
+- My other Pi plugins: https://pi.dev/packages?name=%40czottmann
 - Bluesky: https://bsky.app/profile/zottmann.dev
 - Mastodon: https://norden.social/@zottmann
